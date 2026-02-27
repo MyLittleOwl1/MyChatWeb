@@ -1,959 +1,867 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>MyChat Web 1‑a‑1</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root {
-      --color-primary: #075e54;
-      --color-primary-dark: #054c43;
-      --color-accent: #25d366;
-      --color-bg: #0b141a;
-      --color-bg-light: #202c33;
-      --color-text: #e9edef;
-      --color-muted: #8696a0;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top left, #202c33, #0b141a);
-      color: var(--color-text);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    .app {
-      width: 100%;
-      max-width: 900px;
-      background: rgba(12, 19, 23, 0.96);
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.45);
-      border: 1px solid #202c33;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .app-header {
-      background: linear-gradient(120deg, var(--color-primary-dark), var(--color-primary));
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: #fff;
-    }
-
-    .app-title {
-      font-size: 1.05rem;
-      font-weight: 600;
-    }
-
-    .user-info {
-      font-size: 0.78rem;
-      text-align: right;
-    }
-
-    .user-email { font-weight: 500; }
-
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.5);
-      color: #fff;
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      margin-top: 4px;
-    }
-
-    .btn-ghost:hover { background: rgba(255,255,255,0.1); }
-
-    .app-body {
-      display: flex;
-      min-height: 520px;
-      max-height: 620px;
-      background: url("https://www.transparenttextures.com/patterns/stardust.png"), var(--color-bg);
-    }
-
-    /* Panel auth full-screen en móvil */
-    .panel-auth {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-    }
-
-    .panel-auth.active { display: flex; }
-
-    .auth-tabs {
-      display: flex;
-      margin: 12px 16px 0;
-      border-radius: 999px;
-      background: rgba(32,44,51,0.9);
-      padding: 3px;
-    }
-
-    .auth-tab {
-      flex: 1;
-      text-align: center;
-      padding: 6px 0;
-      font-size: 0.85rem;
-      border-radius: 999px;
-      cursor: pointer;
-      color: var(--color-muted);
-      transition: background 0.2s, color 0.2s;
-    }
-
-    .auth-tab.active {
-      background: #fff;
-      color: #111b21;
-      font-weight: 600;
-    }
-
-    .auth-forms {
-      padding: 12px 16px 16px;
-      overflow-y: auto;
-    }
-
-    .field-group { margin-bottom: 10px; }
-
-    label {
-      display: block;
-      font-size: 0.8rem;
-      color: var(--color-muted);
-      margin-bottom: 4px;
-    }
-
-    input[type="email"],
-    input[type="password"],
-    input[type="text"] {
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid #202c33;
-      background: #111b21;
-      color: var(--color-text);
-      font-size: 0.9rem;
-    }
-
-    input::placeholder { color: #64707a; }
-
-    .btn-primary {
-      width: 100%;
-      padding: 9px 0;
-      border-radius: 999px;
-      border: none;
-      background: var(--color-accent);
-      color: #111b21;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.9rem;
-      margin-top: 4px;
-    }
-
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-
-    .hint {
-      font-size: 0.75rem;
-      color: var(--color-muted);
-      margin-top: 6px;
-    }
-
-    .status-bar {
-      font-size: 0.78rem;
-      padding: 6px 12px;
-      min-height: 22px;
-      border-top: 1px solid #202c33;
-      color: var(--color-muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .status-bar span.error { color: #f15c6c; }
-
-    /* Layout principal chat */
-    .panel-main {
-      flex: 1;
-      display: none;
-      min-height: 0;
-    }
-
-    .panel-main.active { display: flex; }
-
-    .sidebar {
-      width: 38%;
-      min-width: 220px;
-      border-right: 1px solid #202c33;
-      display: flex;
-      flex-direction: column;
-      background: rgba(17,27,33,0.98);
-    }
-
-    .sidebar-header {
-      padding: 10px 12px;
-      border-bottom: 1px solid #202c33;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .sidebar-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-
-    .sidebar-subtitle {
-      font-size: 0.75rem;
-      color: var(--color-muted);
-    }
-
-    .user-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 4px 4px 6px;
-    }
-
-    .user-item {
-      display: flex;
-      align-items: center;
-      padding: 6px 8px;
-      border-radius: 10px;
-      cursor: pointer;
-      gap: 8px;
-    }
-
-    .user-item:hover {
-      background: #202c33;
-    }
-
-    .user-item.active {
-      background: #202c33;
-    }
-
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: #202c33;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9rem;
-      color: var(--color-accent);
-      font-weight: 600;
-    }
-
-    .user-meta {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .user-name {
-      font-size: 0.85rem;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .user-email-small {
-      font-size: 0.72rem;
-      color: var(--color-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .chat-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: url("https://www.transparenttextures.com/patterns/stardust.png"), var(--color-bg);
-    }
-
-    .chat-header {
-      padding: 10px 12px;
-      border-bottom: 1px solid #202c33;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(32,44,51,0.95);
-    }
-
-    .chat-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: #202c33;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
-      color: var(--color-accent);
-      font-weight: 700;
-    }
-
-    .chat-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .chat-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .chat-subtitle {
-      font-size: 0.78rem;
-      color: var(--color-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .chat-messages {
-      flex: 1;
-      padding: 10px 8px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .bubble {
-      max-width: 80%;
-      padding: 6px 8px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      line-height: 1.3;
-      position: relative;
-      word-wrap: break-word;
-    }
-
-    .bubble.me {
-      align-self: flex-end;
-      background: #005c4b;
-      border-bottom-right-radius: 2px;
-    }
-
-    .bubble.other {
-      align-self: flex-start;
-      background: #202c33;
-      border-bottom-left-radius: 2px;
-    }
-
-    .bubble-meta {
-      font-size: 0.7rem;
-      color: var(--color-muted);
-      text-align: right;
-      margin-top: 2px;
-    }
-
-    .chat-input-bar {
-      display: flex;
-      padding: 6px 8px;
-      gap: 6px;
-      background: rgba(17,27,33,0.98);
-      border-top: 1px solid #202c33;
-    }
-
-    .chat-input-bar input[type="text"] {
-      flex: 1;
-      border-radius: 999px;
-      padding-inline: 12px;
-      background: #202c33;
-      border-color: #202c33;
-      font-size: 0.9rem;
-    }
-
-    .btn-send {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      border: none;
-      background: var(--color-accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .btn-send svg {
-      width: 18px;
-      height: 18px;
-      fill: #111b21;
-    }
-
-    .chat-placeholder {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-muted);
-      font-size: 0.84rem;
-      padding: 0 24px;
-      text-align: center;
-    }
-
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: #00a884;
-      flex-shrink: 0;
-    }
-
-    #chatStatus { flex: 1; }
-
-    @media (max-width: 720px) {
-      .app {
-        height: 100vh;
-        max-width: 100%;
-        border-radius: 0;
-      }
-      .app-body {
-        flex-direction: column;
-      }
-      .sidebar {
-        display: none;
-      }
-      .panel-main.active .sidebar {
-        display: none;
-      }
-      .panel-main.active .chat-area {
-        flex: 1;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>MyChat Web 1a1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --color-primary: #075e54;
+            --color-primary-dark: #054c43;
+            --color-accent: #25d366;
+            --color-bg: #0b141a;
+            --color-bg-light: #202c33;
+            --color-text: #e9edef;
+            --color-muted: #8696a0;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at top left, #202c33, #0b141a);
+            color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .app {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(12, 19, 23, 0.96);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+            border: 1px solid #202c33;
+            display: flex;
+            flex-direction: column;
+        }
+        .app-header {
+            background: linear-gradient(120deg, var(--color-primary-dark), var(--color-primary));
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+        }
+        .app-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+        .user-info {
+            font-size: 0.78rem;
+            text-align: right;
+        }
+        .user-email {
+            font-weight: 500;
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            color: #fff;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .app-body {
+            display: flex;
+            min-height: 520px;
+            max-height: 620px;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png'), var(--color-bg);
+        }
+        /* Panel auth full-screen en móvil */
+        .panel-auth {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+        }
+        .panel-auth.active {
+            display: flex;
+        }
+        .auth-tabs {
+            display: flex;
+            margin: 12px 16px 0;
+            border-radius: 999px;
+            background: rgba(32,44,51,0.9);
+            padding: 3px;
+        }
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 6px 0;
+            font-size: 0.85rem;
+            border-radius: 999px;
+            cursor: pointer;
+            color: var(--color-muted);
+            transition: background 0.2s, color 0.2s;
+        }
+        .auth-tab.active {
+            background: #fff;
+            color: #111b21;
+            font-weight: 600;
+        }
+        .auth-forms {
+            padding: 12px 16px 16px;
+            overflow-y: auto;
+        }
+        .field-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--color-muted);
+            margin-bottom: 4px;
+        }
+        input[type="email"], input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #202c33;
+            background: #111b21;
+            color: var(--color-text);
+            font-size: 0.9rem;
+        }
+        input::placeholder {
+            color: #64707a;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 9px 0;
+            border-radius: 999px;
+            border: none;
+            background: var(--color-accent);
+            color: #111b21;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+        .hint {
+            font-size: 0.75rem;
+            color: var(--color-muted);
+            margin-top: 6px;
+        }
+        .status-bar {
+            font-size: 0.78rem;
+            padding: 6px 12px;
+            min-height: 22px;
+            border-top: 1px solid #202c33;
+            color: var(--color-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .status-bar span.error {
+            color: #f15c6c;
+        }
+        /* Layout principal chat */
+        .panel-main {
+            flex: 1;
+            display: none;
+            min-height: 0;
+        }
+        .panel-main.active {
+            display: flex;
+        }
+        .sidebar {
+            width: 38%;
+            min-width: 220px;
+            border-right: 1px solid #202c33;
+            display: flex;
+            flex-direction: column;
+            background: rgba(17,27,33,0.98);
+        }
+        .sidebar-header {
+            padding: 10px 12px;
+            border-bottom: 1px solid #202c33;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sidebar-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .sidebar-subtitle {
+            font-size: 0.75rem;
+            color: var(--color-muted);
+        }
+        .user-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 4px 6px;
+        }
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            gap: 8px;
+        }
+        .user-item:hover {
+            background: #202c33;
+        }
+        .user-item.active {
+            background: #202c33;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #202c33;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: var(--color-accent);
+            font-weight: 600;
+        }
+        .user-meta {
+            flex: 1;
+            min-width: 0;
+        }
+        .user-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .user-email-small {
+            font-size: 0.72rem;
+            color: var(--color-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png'), var(--color-bg);
+        }
+        .chat-header {
+            padding: 10px 12px;
+            border-bottom: 1px solid #202c33;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(32,44,51,0.95);
+        }
+        .chat-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #202c33;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--color-accent);
+            font-weight: 700;
+        }
+        .chat-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .chat-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-subtitle {
+            font-size: 0.78rem;
+            color: var(--color-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 10px 8px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .bubble {
+            max-width: 80%;
+            padding: 6px 8px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            line-height: 1.3;
+            position: relative;
+            word-wrap: break-word;
+        }
+        .bubble.me {
+            align-self: flex-end;
+            background: #005c4b;
+            border-bottom-right-radius: 2px;
+        }
+        .bubble.other {
+            align-self: flex-start;
+            background: #202c33;
+            border-bottom-left-radius: 2px;
+        }
+        .bubble-meta {
+            font-size: 0.7rem;
+            color: var(--color-muted);
+            text-align: right;
+            margin-top: 2px;
+        }
+        .chat-input-bar {
+            display: flex;
+            padding: 6px 8px;
+            gap: 6px;
+            background: rgba(17,27,33,0.98);
+            border-top: 1px solid #202c33;
+        }
+        .chat-input-bar input[type="text"] {
+            flex: 1;
+            border-radius: 999px;
+            padding-inline: 12px;
+            background: #202c33;
+            border-color: #202c33;
+            font-size: 0.9rem;
+        }
+        .btn-send {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            background: var(--color-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .btn-send svg {
+            width: 18px;
+            height: 18px;
+            fill: #111b21;
+        }
+        .chat-placeholder {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-muted);
+            font-size: 0.84rem;
+            padding: 0 24px;
+            text-align: center;
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #00a884;
+            flex-shrink: 0;
+        }
+        #chatStatus {
+            flex: 1;
+        }
+        @media (max-width: 720px) {
+            .app {
+                height: 100vh;
+                max-width: 100%;
+                border-radius: 0;
+            }
+            .app-body {
+                flex-direction: column;
+            }
+            .sidebar {
+                display: none;
+            }
+            .panel-main.active .sidebar {
+                display: none;
+            }
+            .panel-main.active .chat-area {
+                flex: 1;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="app">
-    <header class="app-header">
-      <div class="app-title">MyChat Web 1‑a‑1</div>
-      <div class="user-info">
-        <div class="user-email" id="userEmail">Sin sesión</div>
-        <button class="btn-ghost" id="btnLogout" style="display:none;">Cerrar sesión</button>
-      </div>
-    </header>
-
-    <main class="app-body">
-      <!-- AUTENTICACIÓN -->
-      <section class="panel-auth active" id="panelAuth">
-        <div class="auth-tabs">
-          <div class="auth-tab active" id="tabLogin">Iniciar sesión</div>
-          <div class="auth-tab" id="tabRegister">Crear cuenta</div>
-        </div>
-
-        <div class="auth-forms">
-          <!-- Login -->
-          <div id="formLogin">
-            <div class="field-group">
-              <label for="loginEmail">Email</label>
-              <input type="email" id="loginEmail" placeholder="tucorreo@ejemplo.com" />
+    <div class="app">
+        <header class="app-header">
+            <div class="app-title">MyChat Web 1a1</div>
+            <div class="user-info">
+                <div class="user-email" id="userEmail">Sin sesión</div>
+                <button class="btn-ghost" id="btnLogout" style="display:none">Cerrar sesión</button>
             </div>
-            <div class="field-group">
-              <label for="loginPassword">Contraseña</label>
-              <input type="password" id="loginPassword" placeholder="Tu contraseña" />
-            </div>
-            <button class="btn-primary" id="btnDoLogin">Entrar</button>
-            <p class="hint">Accede con tu cuenta para ver tus contactos y chats.</p>
-          </div>
+        </header>
+        <main class="app-body">
+            <!-- AUTENTICACIÓN -->
+            <section class="panel-auth active" id="panelAuth">
+                <div class="auth-tabs">
+                    <div class="auth-tab active" id="tabLogin">Iniciar sesión</div>
+                    <div class="auth-tab" id="tabRegister">Crear cuenta</div>
+                </div>
+                <div class="auth-forms">
+                    <!-- Login -->
+                    <div id="formLogin">
+                        <div class="field-group">
+                            <label for="loginEmail">Email</label>
+                            <input type="email" id="loginEmail" placeholder="tucorreo@ejemplo.com">
+                        </div>
+                        <div class="field-group">
+                            <label for="loginPassword">Contraseña</label>
+                            <input type="password" id="loginPassword" placeholder="Tu contraseña">
+                        </div>
+                        <button class="btn-primary" id="btnDoLogin">Entrar</button>
+                        <p class="hint">Accede con tu cuenta para ver tus contactos y chats.</p>
+                    </div>
+                    <!-- Registro -->
+                    <div id="formRegister" style="display:none">
+                        <div class="field-group">
+                            <label for="regEmail">Email</label>
+                            <input type="email" id="regEmail" placeholder="tucorreo@ejemplo.com">
+                        </div>
+                        <div class="field-group">
+                            <label for="regPassword">Contraseña</label>
+                            <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres">
+                        </div>
+                        <button class="btn-primary" id="btnDoRegister">Crear cuenta</button>
+                        <p class="hint">Se creará tu ficha de usuario para que otros puedan chatear contigo.</p>
+                    </div>
+                </div>
+                <div class="status-bar" id="authStatusBar"></div>
+            </section>
+            <!-- PANEL PRINCIPAL: USUARIOS + CHAT -->
+            <section class="panel-main" id="panelMain">
+                <aside class="sidebar">
+                    <div class="sidebar-header">
+                        <div>
+                            <div class="sidebar-title">Contactos</div>
+                            <div class="sidebar-subtitle" id="contactsSubtitle">Cargando usuarios...</div>
+                        </div>
+                    </div>
+                    <div class="user-list" id="userList"></div>
+                </aside>
+                <section class="chat-area">
+                    <div class="chat-header">
+                        <div class="chat-avatar" id="chatAvatar">?</div>
+                        <div class="chat-info">
+                            <div class="chat-title" id="chatTitle">Sin conversación</div>
+                            <div class="chat-subtitle" id="chatSubtitle">Selecciona un contacto para empezar a chatear.</div>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-placeholder" id="chatPlaceholder">
+                            Selecciona un usuario en la lista de contactos para abrir un chat privado.
+                            Si no ves a nadie, crea otra cuenta y entra desde otro navegador o modo incógnito.
+                        </div>
+                    </div>
+                    <div class="chat-input-bar">
+                        <input type="text" id="msgInput" placeholder="Escribe un mensaje..." disabled>
+                        <button class="btn-send" id="btnSend" disabled>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M3.4 20.6L20.3 12 3.4 3.4 3.3 10.8 14.5 12 3.3 13.2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-dot"></div>
+                        <span id="chatStatus">Conectado</span>
+                    </div>
+                </section>
+            </section>
+        </main>
+    </div>
 
-          <!-- Registro -->
-          <div id="formRegister" style="display:none;">
-            <div class="field-group">
-              <label for="regEmail">Email</label>
-              <input type="email" id="regEmail" placeholder="tucorreo@ejemplo.com" />
-            </div>
-            <div class="field-group">
-              <label for="regPassword">Contraseña</label>
-              <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" />
-            </div>
-            <button class="btn-primary" id="btnDoRegister">Crear cuenta</button>
-            <p class="hint">Se creará tu ficha de usuario para que otros puedan chatear contigo.</p>
-          </div>
-        </div>
-        <div class="status-bar" id="authStatusBar"></div>
-      </section>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getDatabase, ref, set, get, query, orderByChild, onValue, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
-      <!-- PANEL PRINCIPAL (USUARIOS + CHAT) -->
-      <section class="panel-main" id="panelMain">
-        <aside class="sidebar">
-          <div class="sidebar-header">
-            <div>
-              <div class="sidebar-title">Contactos</div>
-              <div class="sidebar-subtitle" id="contactsSubtitle">Cargando usuarios…</div>
-            </div>
-          </div>
-          <div class="user-list" id="userList"></div>
-        </aside>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDg0MzNwiELhj637zX9C5lgBMQDIhDy9gM",
+            authDomain: "mychatweb-1eedf.firebaseapp.com",
+            projectId: "mychatweb-1eedf",
+            storageBucket: "mychatweb-1eedf.firebasestorage.app",
+            messagingSenderId: "828186176654",
+            appId: "1:828186176654:web:40f80f9e5c495fba4aaddf",
+            databaseURL: "https://mychatweb-1eedf-default-rtdb.firebaseio.com/"
+        };
 
-        <section class="chat-area">
-          <div class="chat-header">
-            <div class="chat-avatar" id="chatAvatar">?</div>
-            <div class="chat-info">
-              <div class="chat-title" id="chatTitle">Sin conversación</div>
-              <div class="chat-subtitle" id="chatSubtitle">Selecciona un contacto para empezar a chatear.</div>
-            </div>
-          </div>
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-          <div class="chat-messages" id="chatMessages">
-            <div class="chat-placeholder" id="chatPlaceholder">
-              Selecciona un usuario en la lista de contactos para abrir un chat privado.
-              Si no ves a nadie, crea otra cuenta y entra desde otro navegador o modo incógnito.
-            </div>
-          </div>
+        // DOM
+        const panelAuth = document.getElementById('panelAuth');
+        const panelMain = document.getElementById('panelMain');
+        const tabLogin = document.getElementById('tabLogin');
+        const tabRegister = document.getElementById('tabRegister');
+        const formLogin = document.getElementById('formLogin');
+        const formRegister = document.getElementById('formRegister');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const btnDoLogin = document.getElementById('btnDoLogin');
+        const regEmail = document.getElementById('regEmail');
+        const regPassword = document.getElementById('regPassword');
+        const btnDoRegister = document.getElementById('btnDoRegister');
+        const authStatusBar = document.getElementById('authStatusBar');
+        const userEmailSpan = document.getElementById('userEmail');
+        const btnLogout = document.getElementById('btnLogout');
+        const contactsSubtitle = document.getElementById('contactsSubtitle');
+        const userList = document.getElementById('userList');
+        const chatAvatar = document.getElementById('chatAvatar');
+        const chatTitle = document.getElementById('chatTitle');
+        const chatSubtitle = document.getElementById('chatSubtitle');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatPlaceholder = document.getElementById('chatPlaceholder');
+        const msgInput = document.getElementById('msgInput');
+        const btnSend = document.getElementById('btnSend');
+        const chatStatus = document.getElementById('chatStatus');
 
-          <div class="chat-input-bar">
-            <input type="text" id="msgInput" placeholder="Escribe un mensaje" disabled />
-            <button class="btn-send" id="btnSend" disabled>
-              <svg viewBox="0 0 24 24">
-                <path d="M3.4 20.6L20.3 12 3.4 3.4 3.3 10.8 14.5 12 3.3 13.2z" />
-              </svg>
-            </button>
-          </div>
+        let currentUser = null;
+        let currentConversationId = null;
+        let unsubscribeUsers = null;
+        let unsubscribeMessages = null;
 
-          <div class="status-bar">
-            <div class="status-dot"></div>
-            <span id="chatStatus">Conectado</span>
-          </div>
-        </section>
-      </section>
-    </main>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import {
-      getAuth,
-      onAuthStateChanged,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      setDoc,
-      getDoc,
-      getDocs,
-      collection,
-      addDoc,
-      serverTimestamp,
-      query,
-      where,
-      orderBy,
-      onSnapshot
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDg0MzNwiELhj637zX9C5lgBMQDIhDy9gM",
-      authDomain: "mychatweb-1eedf.firebaseapp.com",
-      projectId: "mychatweb-1eedf",
-      storageBucket: "mychatweb-1eedf.firebasestorage.app",
-      messagingSenderId: "828186176654",
-      appId: "1:828186176654:web:40f80f9e5c495fba4aaddf"
-    };
-
-    const app = initializeApp(firebaseConfig);               // [web:30]
-    const auth = getAuth(app);                               // [web:44]
-    const db   = getFirestore(app);                          // [web:73][web:76]
-
-    // DOM
-    const panelAuth   = document.getElementById("panelAuth");
-    const panelMain   = document.getElementById("panelMain");
-
-    const tabLogin    = document.getElementById("tabLogin");
-    const tabRegister = document.getElementById("tabRegister");
-    const formLogin   = document.getElementById("formLogin");
-    const formRegister= document.getElementById("formRegister");
-
-    const loginEmail    = document.getElementById("loginEmail");
-    const loginPassword = document.getElementById("loginPassword");
-    const btnDoLogin    = document.getElementById("btnDoLogin");
-
-    const regEmail      = document.getElementById("regEmail");
-    const regPassword   = document.getElementById("regPassword");
-    const btnDoRegister = document.getElementById("btnDoRegister");
-
-    const authStatusBar = document.getElementById("authStatusBar");
-    const userEmailSpan = document.getElementById("userEmail");
-    const btnLogout     = document.getElementById("btnLogout");
-
-    const contactsSubtitle = document.getElementById("contactsSubtitle");
-    const userList         = document.getElementById("userList");
-
-    const chatAvatar     = document.getElementById("chatAvatar");
-    const chatTitle      = document.getElementById("chatTitle");
-    const chatSubtitle   = document.getElementById("chatSubtitle");
-    const chatMessages   = document.getElementById("chatMessages");
-    const chatPlaceholder= document.getElementById("chatPlaceholder");
-    const msgInput       = document.getElementById("msgInput");
-    const btnSend        = document.getElementById("btnSend");
-    const chatStatus     = document.getElementById("chatStatus");
-
-    let currentUser = null;
-    let currentConversationId = null;
-    let unsubscribeMessages = null;
-
-    // Auth helpers
-    function setAuthStatus(message, isError = false) {
-      authStatusBar.innerHTML = "";
-      if (!message) return;
-      const span = document.createElement("span");
-      span.textContent = message;
-      if (isError) span.classList.add("error");
-      authStatusBar.appendChild(span);
-    }
-
-    function switchToLogin() {
-      tabLogin.classList.add("active");
-      tabRegister.classList.remove("active");
-      formLogin.style.display = "block";
-      formRegister.style.display = "none";
-      setAuthStatus("");
-    }
-
-    function switchToRegister() {
-      tabRegister.classList.add("active");
-      tabLogin.classList.remove("active");
-      formLogin.style.display = "none";
-      formRegister.style.display = "block";
-      setAuthStatus("");
-    }
-
-    tabLogin.addEventListener("click", switchToLogin);
-    tabRegister.addEventListener("click", switchToRegister);
-
-    function traducirErrorAuth(code) {
-      switch (code) {
-        case "auth/email-already-in-use": return "El email ya está registrado.";
-        case "auth/invalid-email":        return "El formato de email no es válido.";
-        case "auth/weak-password":        return "La contraseña es demasiado débil (mínimo 6 caracteres).";
-        case "auth/user-not-found":
-        case "auth/wrong-password":       return "Email o contraseña incorrectos.";
-        case "auth/too-many-requests":    return "Demasiados intentos. Espera un momento.";
-        case "auth/configuration-not-found": return "Authentication no está correctamente configurado en Firebase.";
-        default:                          return "Error de autenticación: " + code;
-      }
-    }
-
-    // Registro
-    btnDoRegister.addEventListener("click", async () => {
-      const email = regEmail.value.trim();
-      const pass  = regPassword.value.trim();
-      if (!email || !pass) {
-        setAuthStatus("Introduce email y contraseña.", true);
-        return;
-      }
-      btnDoRegister.disabled = true;
-      setAuthStatus("Creando cuenta…");
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, pass);  // [web:44]
-        const uid = cred.user.uid;
-
-        // Crear documento de usuario
-        await setDoc(doc(db, "users", uid), {                                  // [web:73][web:76]
-          email,
-          createdAt: serverTimestamp()
-        });
-
-        setAuthStatus("Cuenta creada y usuario registrado.");
-      } catch (err) {
-        console.error(err);
-        setAuthStatus(traducirErrorAuth(err.code), true);
-      } finally {
-        btnDoRegister.disabled = false;
-      }
-    });
-
-    // Login
-    btnDoLogin.addEventListener("click", async () => {
-      const email = loginEmail.value.trim();
-      const pass  = loginPassword.value.trim();
-      if (!email || !pass) {
-        setAuthStatus("Introduce email y contraseña.", true);
-        return;
-      }
-      btnDoLogin.disabled = true;
-      setAuthStatus("Iniciando sesión…");
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);                  // [web:44]
-        setAuthStatus("Sesión iniciada.");
-      } catch (err) {
-        console.error(err);
-        setAuthStatus(traducirErrorAuth(err.code), true);
-      } finally {
-        btnDoLogin.disabled = false;
-      }
-    });
-
-    // Logout
-    btnLogout.addEventListener("click", async () => {
-      try {
-        await signOut(auth);                                                  // [web:44]
-      } catch (err) {
-        console.error(err);
-      }
-    });
-
-    // Estado de autenticación
-    onAuthStateChanged(auth, async (user) => {                                // [web:44]
-      currentUser = user || null;
-      if (user) {
-        userEmailSpan.textContent = user.email || "Usuario";
-        btnLogout.style.display = "inline-block";
-        panelAuth.classList.remove("active");
-        panelMain.classList.add("active");
-        await ensureUserDoc(user);
-        await loadUsersList();
-      } else {
-        userEmailSpan.textContent = "Sin sesión";
-        btnLogout.style.display = "none";
-        panelMain.classList.remove("active");
-        panelAuth.classList.add("active");
-        userList.innerHTML = "";
-        contactsSubtitle.textContent = "Inicia sesión para ver tus contactos.";
-        resetChatView();
-      }
-    });
-
-    async function ensureUserDoc(user) {
-      const ref = doc(db, "users", user.uid);
-      const snap = await getDoc(ref);                                         // [web:73][web:76]
-      if (!snap.exists()) {
-        await setDoc(ref, {
-          email: user.email || "",
-          createdAt: serverTimestamp()
-        });
-      }
-    }
-
-    // Cargar lista de usuarios
-    async function loadUsersList() {
-      if (!currentUser) return;
-      contactsSubtitle.textContent = "Cargando usuarios…";
-      userList.innerHTML = "";
-      try {
-        const q = query(collection(db, "users"));                             // [web:73][web:76]
-        const snapshot = await getDocs(q);
-        let count = 0;
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const uid = docSnap.id;
-          if (uid === currentUser.uid) return; // no me muestro a mí
-          count++;
-          const item = renderUserItem(uid, data.email);
-          userList.appendChild(item);
-        });
-        if (count === 0) {
-          contactsSubtitle.textContent = "No hay otros usuarios. Crea otra cuenta.";
-        } else {
-          contactsSubtitle.textContent = count + " usuario(s) disponible(s).";
+        // Auth helpers
+        function setAuthStatus(message, isError = false) {
+            authStatusBar.innerHTML = '';
+            if (!message) return;
+            const span = document.createElement('span');
+            span.textContent = message;
+            if (isError) span.classList.add('error');
+            authStatusBar.appendChild(span);
         }
-      } catch (err) {
-        console.error(err);
-        contactsSubtitle.textContent = "Error al cargar usuarios.";
-      }
-    }
 
-    function renderUserItem(uid, email) {
-      const div = document.createElement("div");
-      div.className = "user-item";
-      div.dataset.uid = uid;
-      div.dataset.email = email || "";
-
-      const avatar = document.createElement("div");
-      avatar.className = "user-avatar";
-      const letra = (email || "?").charAt(0).toUpperCase();
-      avatar.textContent = letra;
-
-      const meta = document.createElement("div");
-      meta.className = "user-meta";
-
-      const name = document.createElement("div");
-      name.className = "user-name";
-      name.textContent = email || "Usuario";
-
-      const small = document.createElement("div");
-      small.className = "user-email-small";
-      small.textContent = "Pulsa para chatear";
-
-      meta.appendChild(name);
-      meta.appendChild(small);
-
-      div.appendChild(avatar);
-      div.appendChild(meta);
-
-      div.addEventListener("click", () => {
-        const items = document.querySelectorAll(".user-item");
-        items.forEach(i => i.classList.remove("active"));
-        div.classList.add("active");
-        openConversationWith(uid, email);
-      });
-
-      return div;
-    }
-
-    function resetChatView() {
-      chatAvatar.textContent = "?";
-      chatTitle.textContent = "Sin conversación";
-      chatSubtitle.textContent = "Selecciona un contacto para empezar a chatear.";
-      chatMessages.innerHTML = "";
-      chatMessages.appendChild(chatPlaceholder);
-      msgInput.value = "";
-      msgInput.disabled = true;
-      btnSend.disabled = true;
-      chatStatus.textContent = "Esperando contacto…";
-      currentConversationId = null;
-      if (unsubscribeMessages) {
-        unsubscribeMessages();
-        unsubscribeMessages = null;
-      }
-    }
-
-    // Crear/obtener conversación 1‑a‑1 y escuchar mensajes
-    async function openConversationWith(otherUid, otherEmail) {
-      if (!currentUser) return;
-      chatStatus.textContent = "Abriendo conversación…";
-      msgInput.disabled = true;
-      btnSend.disabled = true;
-
-      // ID determinista: uid1_uid2 ordenados
-      const uid1 = currentUser.uid;
-      const uid2 = otherUid;
-      const convId = uid1 < uid2 ? uid1 + "_" + uid2 : uid2 + "_" + uid1;
-
-      currentConversationId = convId;
-
-      // Crear doc si no existe
-      const convRef = doc(db, "conversations", convId);
-      const snap = await getDoc(convRef);                                     // [web:73][web:76][web:77]
-      if (!snap.exists()) {
-        await setDoc(convRef, {
-          participants: [uid1, uid2],
-          lastMessage: "",
-          lastAt: serverTimestamp()
-        });
-      }
-
-      // Actualizar cabecera chat
-      const letra = (otherEmail || "?").charAt(0).toUpperCase();
-      chatAvatar.textContent = letra;
-      chatTitle.textContent  = otherEmail || "Usuario";
-      chatSubtitle.textContent = "Chat privado con " + (otherEmail || "usuario");
-
-      // Limpiar mensajes anteriores y escuchar nuevos
-      if (unsubscribeMessages) {
-        unsubscribeMessages();
-        unsubscribeMessages = null;
-      }
-
-      chatMessages.innerHTML = "";
-      chatMessages.appendChild(chatPlaceholder);
-
-      const msgsCol = collection(db, "conversations", convId, "messages");
-      const qMsgs   = query(msgsCol, orderBy("createdAt", "asc"));            // [web:73][web:76][web:77]
-
-      unsubscribeMessages = onSnapshot(qMsgs, (snapshot) => {                // [web:73][web:76]
-        chatMessages.innerHTML = "";
-        let hasMessages = false;
-        snapshot.forEach((docSnap) => {
-          hasMessages = true;
-          const data = docSnap.data();
-          renderMessage(data);
-        });
-        if (!hasMessages) {
-          chatMessages.appendChild(chatPlaceholder);
+        function switchToLogin() {
+            tabLogin.classList.add('active');
+            tabRegister.classList.remove('active');
+            formLogin.style.display = 'block';
+            formRegister.style.display = 'none';
+            setAuthStatus();
         }
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        chatStatus.textContent = "Conectado";
-      }, (error) => {
-        console.error(error);
-        chatStatus.textContent = "Error al recibir mensajes";
-      });
 
-      msgInput.disabled = false;
-      btnSend.disabled = false;
-      msgInput.focus();
-    }
+        function switchToRegister() {
+            tabRegister.classList.add('active');
+            tabLogin.classList.remove('active');
+            formLogin.style.display = 'none';
+            formRegister.style.display = 'block';
+            setAuthStatus();
+        }
 
-    function renderMessage(data) {
-      if (!currentUser) return;
-      const isMe = data.senderId === currentUser.uid;
-      const bubble = document.createElement("div");
-      bubble.className = "bubble " + (isMe ? "me" : "other");
+        tabLogin.addEventListener('click', switchToLogin);
+        tabRegister.addEventListener('click', switchToRegister);
 
-      const text = document.createElement("div");
-      text.textContent = data.text || "";
-      bubble.appendChild(text);
+        function traducirErrorAuth(code) {
+            switch (code) {
+                case 'auth/email-already-in-use': return 'El email ya está registrado.';
+                case 'auth/invalid-email': return 'El formato de email no es válido.';
+                case 'auth/weak-password': return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
+                case 'auth/user-not-found':
+                case 'auth/wrong-password': return 'Email o contraseña incorrectos.';
+                case 'auth/too-many-requests': return 'Demasiados intentos. Espera un momento.';
+                case 'auth/configuration-not-found': return 'Authentication no está correctamente configurado en Firebase.';
+                default: return `Error de autenticación: ${code}`;
+            }
+        }
 
-      const meta = document.createElement("div");
-      meta.className = "bubble-meta";
+        // Registro
+        btnDoRegister.addEventListener('click', async () => {
+            const email = regEmail.value.trim();
+            const pass = regPassword.value.trim();
+            if (!email || !pass) {
+                setAuthStatus('Introduce email y contraseña.', true);
+                return;
+            }
+            btnDoRegister.disabled = true;
+            setAuthStatus('Creando cuenta...');
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                const uid = cred.user.uid;
+                // Crear nodo de usuario en RTDB
+                await set(ref(db, `users/${uid}`), {
+                    email,
+                    createdAt: serverTimestamp()
+                });
+                setAuthStatus('Cuenta creada y usuario registrado.');
+            } catch (err) {
+                console.error(err);
+                setAuthStatus(traducirErrorAuth(err.code), true);
+            } finally {
+                btnDoRegister.disabled = false;
+            }
+        });
 
-      let timeStr = "";
-      if (data.createdAt && data.createdAt.toDate) {
-        const d = data.createdAt.toDate();
-        const hh = String(d.getHours()).padStart(2, "0");
-        const mm = String(d.getMinutes()).padStart(2, "0");
-        timeStr = hh + ":" + mm;
-      }
-      meta.textContent = timeStr;
-      bubble.appendChild(meta);
+        // Login
+        btnDoLogin.addEventListener('click', async () => {
+            const email = loginEmail.value.trim();
+            const pass = loginPassword.value.trim();
+            if (!email || !pass) {
+                setAuthStatus('Introduce email y contraseña.', true);
+                return;
+            }
+            btnDoLogin.disabled = true;
+            setAuthStatus('Iniciando sesión...');
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                setAuthStatus('Sesión iniciada.');
+            } catch (err) {
+                console.error(err);
+                setAuthStatus(traducirErrorAuth(err.code), true);
+            } finally {
+                btnDoLogin.disabled = false;
+            }
+        });
 
-      chatMessages.appendChild(bubble);
-    }
+        // Logout
+        btnLogout.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+            } catch (err) {
+                console.error(err);
+            }
+        });
 
-    async function sendMessage() {
-      if (!currentUser || !currentConversationId) return;
-      const text = msgInput.value.trim();
-      if (!text) return;
+        // Estado de autenticación
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user || null;
+            if (user) {
+                userEmailSpan.textContent = `${user.email} (Usuario)`;
+                btnLogout.style.display = 'inline-block';
+                panelAuth.classList.remove('active');
+                panelMain.classList.add('active');
+                await ensureUserNode(user);
+                loadUsersList();
+            } else {
+                userEmailSpan.textContent = 'Sin sesión';
+                btnLogout.style.display = 'none';
+                panelMain.classList.remove('active');
+                panelAuth.classList.add('active');
+                userList.innerHTML = '';
+                contactsSubtitle.textContent = 'Inicia sesión para ver tus contactos.';
+                resetChatView();
+            }
+        });
 
-      msgInput.value = "";
-      msgInput.focus();
-      chatStatus.textContent = "Enviando…";
+        async function ensureUserNode(user) {
+            const userRef = ref(db, `users/${user.uid}`);
+            const snapshot = await get(userRef);
+            if (!snapshot.exists()) {
+                await set(userRef, {
+                    email: user.email,
+                    createdAt: serverTimestamp()
+                });
+            }
+        }
 
-      const convRef = doc(db, "conversations", currentConversationId);
-      const msgsCol = collection(convRef, "messages");
+        // Cargar lista de usuarios
+        function loadUsersList() {
+            if (!currentUser) return;
+            contactsSubtitle.textContent = 'Cargando usuarios...';
+            userList.innerHTML = '';
 
-      try {
-        await addDoc(msgsCol, {
-          text,
-          senderId: currentUser.uid,
-          createdAt: serverTimestamp()
-        });                                                                  // [web:73][web:76][web:77]
+            if (unsubscribeUsers) unsubscribeUsers();
+            const usersRef = ref(db, 'users');
+            unsubscribeUsers = onValue(query(usersRef, orderByChild('email')), (snapshot) => {
+                let count = 0;
+                userList.innerHTML = '';
+                snapshot.forEach((childSnapshot) => {
+                    const data = childSnapshot.val();
+                    const uid = childSnapshot.key;
+                    if (uid === currentUser.uid) return; // no me muestro a mí
+                    count++;
+                    const item = renderUserItem(uid, data.email);
+                    userList.appendChild(item);
+                });
+                if (count === 0) {
+                    contactsSubtitle.textContent = 'No hay otros usuarios. Crea otra cuenta.';
+                } else {
+                    contactsSubtitle.textContent = `${count} usuarios disponibles.`;
+                }
+            }, (error) => {
+                console.error(error);
+                contactsSubtitle.textContent = 'Error al cargar usuarios.';
+            });
+        }
 
-        await setDoc(convRef, {
-          lastMessage: text,
-          lastAt: serverTimestamp()
-        }, { merge: true });
-        chatStatus.textContent = "Conectado";
-      } catch (err) {
-        console.error(err);
-        chatStatus.textContent = "Error al enviar";
-      }
-    }
+        function renderUserItem(uid, email) {
+            const div = document.createElement('div');
+            div.className = 'user-item';
+            div.dataset.uid = uid;
+            div.dataset.email = email;
+            const avatar = document.createElement('div');
+            avatar.className = 'user-avatar';
+            const letra = email?.charAt(0).toUpperCase();
+            avatar.textContent = letra;
+            const meta = document.createElement('div');
+            meta.className = 'user-meta';
+            const name = document.createElement('div');
+            name.className = 'user-name';
+            name.textContent = `${email} (Usuario)`;
+            const small = document.createElement('div');
+            small.className = 'user-email-small';
+            small.textContent = 'Pulsa para chatear';
+            meta.appendChild(name);
+            meta.appendChild(small);
+            div.appendChild(avatar);
+            div.appendChild(meta);
+            div.addEventListener('click', () => {
+                const items = document.querySelectorAll('.user-item');
+                items.forEach(i => i.classList.remove('active'));
+                div.classList.add('active');
+                openConversationWith(uid, email);
+            });
+            return div;
+        }
 
-    btnSend.addEventListener("click", sendMessage);
-    msgInput.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter" && !ev.shiftKey) {
-        ev.preventDefault();
-        sendMessage();
-      }
-    });
-  </script>
+        function resetChatView() {
+            chatAvatar.textContent = '?';
+            chatTitle.textContent = 'Sin conversación';
+            chatSubtitle.textContent = 'Selecciona un contacto para empezar a chatear.';
+            chatMessages.innerHTML = '';
+            chatMessages.appendChild(chatPlaceholder);
+            msgInput.value = '';
+            msgInput.disabled = true;
+            btnSend.disabled = true;
+            chatStatus.textContent = 'Esperando contacto';
+            currentConversationId = null;
+            if (unsubscribeMessages) {
+                unsubscribeMessages();
+                unsubscribeMessages = null;
+            }
+        }
+
+        // Crear/obtener conversación 1a1 y escuchar mensajes
+        async function openConversationWith(otherUid, otherEmail) {
+            if (!currentUser) return;
+            chatStatus.textContent = 'Abriendo conversación...';
+            msgInput.disabled = true;
+            btnSend.disabled = true;
+
+            // ID determinista: uid1+uid2 ordenados
+            const uid1 = currentUser.uid < otherUid ? currentUser.uid : otherUid;
+            const uid2 = currentUser.uid > otherUid ? currentUser.uid : otherUid;
+            currentConversationId = `${uid1}_${uid2}`;
+
+            // Crear nodo si no existe
+            const convRef = ref(db, `conversations/${currentConversationId}`);
+            const convSnap = await get(convRef);
+            if (!convSnap.exists()) {
+                await set(convRef, {
+                    participants: { [uid1]: true, [uid2]: true },
+                    lastMessage: '',
+                    lastAt: serverTimestamp()
+                });
+            }
+
+            // Actualizar cabecera chat
+            const letra = otherEmail?.charAt(0).toUpperCase();
+            chatAvatar.textContent = letra;
+            chatTitle.textContent = `${otherEmail} (Usuario)`;
+            chatSubtitle.textContent = `Chat privado con ${otherEmail} (usuario)`;
+
+            // Limpiar mensajes anteriores y escuchar nuevos
+            if (unsubscribeMessages) unsubscribeMessages();
+            chatMessages.innerHTML = '';
+            chatMessages.appendChild(chatPlaceholder);
+
+            const messagesRef = ref(db, `conversations/${currentConversationId}/messages`);
+            const qMsgs = query(messagesRef, orderByChild('createdAt'));
+            unsubscribeMessages = onValue(qMsgs, (snapshot) => {
+                chatMessages.innerHTML = '';
+                let hasMessages = false;
+                snapshot.forEach((childSnapshot) => {
+                    hasMessages = true;
+                    const data = childSnapshot.val();
+                    renderMessage(data);
+                });
+                if (!hasMessages) {
+                    chatMessages.appendChild(chatPlaceholder);
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, (error) => {
+                console.error(error);
+                chatStatus.textContent = 'Error al recibir mensajes';
+            });
+
+            msgInput.disabled = false;
+            btnSend.disabled = false;
+            msgInput.focus();
+            chatStatus.textContent = 'Conectado';
+        }
+
+        function renderMessage(data) {
+            if (!currentUser) return;
+            const isMe = data.senderId === currentUser.uid;
+            const bubble = document.createElement('div');
+            bubble.className = `bubble ${isMe ? 'me' : 'other'}`;
+            const text = document.createElement('div');
+            text.textContent = data.text;
+            bubble.appendChild(text);
+            const meta = document.createElement('div');
+            meta.className = 'bubble-meta';
+            let timeStr = '';
+            if (data.createdAt) {
+                const d = data.createdAt;
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                timeStr = `${hh}:${mm}`;
+            }
+            meta.textContent = timeStr;
+            bubble.appendChild(meta);
+            chatMessages.appendChild(bubble);
+        }
+
+        async function sendMessage() {
+            if (!currentUser || !currentConversationId) return;
+            const text = msgInput.value.trim();
+            if (!text) return;
+            msgInput.value = '';
+            msgInput.focus();
+            chatStatus.textContent = 'Enviando...';
+
+            const convRef = ref(db, `conversations/${currentConversationId}`);
+            const messagesRef = ref(db, `conversations/${currentConversationId}/messages`);
+            try {
+                const newMsgRef = push(messagesRef);
+                await set(newMsgRef, {
+                    text,
+                    senderId: currentUser.uid,
+                    createdAt: serverTimestamp()
+                });
+                await set(convRef, {
+                    lastMessage: text,
+                    lastAt: serverTimestamp()
+                });
+                chatStatus.textContent = 'Conectado';
+            } catch (err) {
+                console.error(err);
+                chatStatus.textContent = 'Error al enviar';
+            }
+        }
+
+        btnSend.addEventListener('click', sendMessage);
+        msgInput.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' && !ev.shiftKey) {
+                ev.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
 </body>
 </html>
