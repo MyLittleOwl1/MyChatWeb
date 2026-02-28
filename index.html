@@ -78,7 +78,6 @@
             max-height: 620px;
             background: url('https://www.transparenttextures.com/patterns/stardust.png'), var(--color-bg);
         }
-        /* Panel auth full-screen en móvil */
         .panel-auth {
             flex: 1;
             display: none;
@@ -168,7 +167,6 @@
         .status-bar span.error {
             color: #f15c6c;
         }
-        /* Layout principal chat */
         .panel-main {
             flex: 1;
             display: none;
@@ -409,14 +407,12 @@
             </div>
         </header>
         <main class="app-body">
-            <!-- AUTENTICACIÓN -->
             <section class="panel-auth active" id="panelAuth">
                 <div class="auth-tabs">
                     <div class="auth-tab active" id="tabLogin">Iniciar sesión</div>
                     <div class="auth-tab" id="tabRegister">Crear cuenta</div>
                 </div>
                 <div class="auth-forms">
-                    <!-- Login -->
                     <div id="formLogin">
                         <div class="field-group">
                             <label for="loginEmail">Email</label>
@@ -429,7 +425,6 @@
                         <button class="btn-primary" id="btnDoLogin">Entrar</button>
                         <p class="hint">Accede con tu cuenta para ver tus contactos y chats.</p>
                     </div>
-                    <!-- Registro -->
                     <div id="formRegister" style="display:none">
                         <div class="field-group">
                             <label for="regEmail">Email</label>
@@ -445,7 +440,6 @@
                 </div>
                 <div class="status-bar" id="authStatusBar"></div>
             </section>
-            <!-- PANEL PRINCIPAL: USUARIOS + CHAT -->
             <section class="panel-main" id="panelMain">
                 <aside class="sidebar">
                     <div class="sidebar-header">
@@ -490,7 +484,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-        import { getDatabase, ref, set, get, query, orderByChild, onValue, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+        import { getDatabase, ref, set, get, update, onValue, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDg0MzNwiELhj637zX9C5lgBMQDIhDy9gM",
@@ -499,14 +493,14 @@
             storageBucket: "mychatweb-1eedf.firebasestorage.app",
             messagingSenderId: "828186176654",
             appId: "1:828186176654:web:40f80f9e5c495fba4aaddf",
-            databaseURL: "https://mychatweb-1eedf-default-rtdb.firebaseio.com/"
+            databaseURL: "https://mychatweb-1eedf-default-rtdb.europe-west1.firebasedatabase.app/"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // DOM
+        // DOM elements
         const panelAuth = document.getElementById('panelAuth');
         const panelMain = document.getElementById('panelMain');
         const tabLogin = document.getElementById('tabLogin');
@@ -580,7 +574,6 @@
             }
         }
 
-        // Registro
         btnDoRegister.addEventListener('click', async () => {
             const email = regEmail.value.trim();
             const pass = regPassword.value.trim();
@@ -593,7 +586,6 @@
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, pass);
                 const uid = cred.user.uid;
-                // Crear nodo de usuario en RTDB
                 await set(ref(db, `users/${uid}`), {
                     email,
                     createdAt: serverTimestamp()
@@ -607,7 +599,6 @@
             }
         });
 
-        // Login
         btnDoLogin.addEventListener('click', async () => {
             const email = loginEmail.value.trim();
             const pass = loginPassword.value.trim();
@@ -628,7 +619,6 @@
             }
         });
 
-        // Logout
         btnLogout.addEventListener('click', async () => {
             try {
                 await signOut(auth);
@@ -637,7 +627,6 @@
             }
         });
 
-        // Estado de autenticación
         onAuthStateChanged(auth, async (user) => {
             currentUser = user || null;
             if (user) {
@@ -669,7 +658,6 @@
             }
         }
 
-        // Cargar lista de usuarios
         function loadUsersList() {
             if (!currentUser) return;
             contactsSubtitle.textContent = 'Cargando usuarios...';
@@ -677,25 +665,36 @@
 
             if (unsubscribeUsers) unsubscribeUsers();
             const usersRef = ref(db, 'users');
-            unsubscribeUsers = onValue(query(usersRef, orderByChild('email')), (snapshot) => {
-                let count = 0;
-                userList.innerHTML = '';
-                snapshot.forEach((childSnapshot) => {
-                    const data = childSnapshot.val();
-                    const uid = childSnapshot.key;
-                    if (uid === currentUser.uid) return; // no me muestro a mí
-                    count++;
-                    const item = renderUserItem(uid, data.email);
-                    userList.appendChild(item);
-                });
-                if (count === 0) {
-                    contactsSubtitle.textContent = 'No hay otros usuarios. Crea otra cuenta.';
-                } else {
-                    contactsSubtitle.textContent = `${count} usuarios disponibles.`;
+            unsubscribeUsers = onValue(usersRef, (snapshot) => {
+                try {
+                    const users = [];
+                    snapshot.forEach((childSnapshot) => {
+                        const data = childSnapshot.val();
+                        const uid = childSnapshot.key;
+                        if (uid === currentUser.uid) return; // excluirse a sí mismo
+                        users.push({ uid, email: data.email });
+                    });
+                    // Ordenar por email en el cliente
+                    users.sort((a, b) => a.email.localeCompare(b.email));
+                    
+                    userList.innerHTML = '';
+                    users.forEach(u => {
+                        const item = renderUserItem(u.uid, u.email);
+                        userList.appendChild(item);
+                    });
+
+                    if (users.length === 0) {
+                        contactsSubtitle.textContent = 'No hay otros usuarios. Crea otra cuenta.';
+                    } else {
+                        contactsSubtitle.textContent = `${users.length} usuarios disponibles.`;
+                    }
+                } catch (err) {
+                    console.error('Error procesando usuarios:', err);
+                    contactsSubtitle.textContent = 'Error al procesar usuarios.';
                 }
             }, (error) => {
-                console.error(error);
-                contactsSubtitle.textContent = 'Error al cargar usuarios.';
+                console.error('Error al cargar usuarios:', error);
+                contactsSubtitle.textContent = 'Error al cargar usuarios. Revisa permisos.';
             });
         }
 
@@ -746,19 +745,16 @@
             }
         }
 
-        // Crear/obtener conversación 1a1 y escuchar mensajes
         async function openConversationWith(otherUid, otherEmail) {
             if (!currentUser) return;
             chatStatus.textContent = 'Abriendo conversación...';
             msgInput.disabled = true;
             btnSend.disabled = true;
 
-            // ID determinista: uid1+uid2 ordenados
             const uid1 = currentUser.uid < otherUid ? currentUser.uid : otherUid;
             const uid2 = currentUser.uid > otherUid ? currentUser.uid : otherUid;
             currentConversationId = `${uid1}_${uid2}`;
 
-            // Crear nodo si no existe
             const convRef = ref(db, `conversations/${currentConversationId}`);
             const convSnap = await get(convRef);
             if (!convSnap.exists()) {
@@ -769,33 +765,39 @@
                 });
             }
 
-            // Actualizar cabecera chat
             const letra = otherEmail?.charAt(0).toUpperCase();
             chatAvatar.textContent = letra;
             chatTitle.textContent = `${otherEmail} (Usuario)`;
-            chatSubtitle.textContent = `Chat privado con ${otherEmail} (usuario)`;
+            chatSubtitle.textContent = `Chat privado con ${otherEmail}`;
 
-            // Limpiar mensajes anteriores y escuchar nuevos
             if (unsubscribeMessages) unsubscribeMessages();
             chatMessages.innerHTML = '';
             chatMessages.appendChild(chatPlaceholder);
 
             const messagesRef = ref(db, `conversations/${currentConversationId}/messages`);
-            const qMsgs = query(messagesRef, orderByChild('createdAt'));
-            unsubscribeMessages = onValue(qMsgs, (snapshot) => {
-                chatMessages.innerHTML = '';
-                let hasMessages = false;
-                snapshot.forEach((childSnapshot) => {
-                    hasMessages = true;
-                    const data = childSnapshot.val();
-                    renderMessage(data);
-                });
-                if (!hasMessages) {
-                    chatMessages.appendChild(chatPlaceholder);
+            unsubscribeMessages = onValue(messagesRef, (snapshot) => {
+                try {
+                    chatMessages.innerHTML = '';
+                    let hasMessages = false;
+                    const messages = [];
+                    snapshot.forEach((childSnapshot) => {
+                        hasMessages = true;
+                        const data = childSnapshot.val();
+                        messages.push(data);
+                    });
+                    // Ordenar por createdAt (Firebase ya los devuelve por orden de inserción si no se usa orderByChild)
+                    messages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+                    messages.forEach(msg => renderMessage(msg));
+                    if (!hasMessages) {
+                        chatMessages.appendChild(chatPlaceholder);
+                    }
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } catch (err) {
+                    console.error('Error al procesar mensajes:', err);
+                    chatStatus.textContent = 'Error al mostrar mensajes';
                 }
-                chatMessages.scrollTop = chatMessages.scrollHeight;
             }, (error) => {
-                console.error(error);
+                console.error('Error al escuchar mensajes:', error);
                 chatStatus.textContent = 'Error al recibir mensajes';
             });
 
@@ -811,15 +813,25 @@
             const bubble = document.createElement('div');
             bubble.className = `bubble ${isMe ? 'me' : 'other'}`;
             const text = document.createElement('div');
-            text.textContent = data.text;
+            text.textContent = data.text || '';
             bubble.appendChild(text);
             const meta = document.createElement('div');
             meta.className = 'bubble-meta';
+            
+            // Formatear timestamp correctamente
             let timeStr = '';
             if (data.createdAt) {
-                const d = data.createdAt;
-                const hh = String(d.getHours()).padStart(2, '0');
-                const mm = String(d.getMinutes()).padStart(2, '0');
+                // Puede ser número (milisegundos) u objeto con seconds
+                let date;
+                if (typeof data.createdAt === 'number') {
+                    date = new Date(data.createdAt);
+                } else if (data.createdAt.seconds) {
+                    date = new Date(data.createdAt.seconds * 1000);
+                } else {
+                    date = new Date(); // fallback
+                }
+                const hh = String(date.getHours()).padStart(2, '0');
+                const mm = String(date.getMinutes()).padStart(2, '0');
                 timeStr = `${hh}:${mm}`;
             }
             meta.textContent = timeStr;
@@ -844,7 +856,8 @@
                     senderId: currentUser.uid,
                     createdAt: serverTimestamp()
                 });
-                await set(convRef, {
+                // Usar update en lugar de set para no sobrescribir participants
+                await update(convRef, {
                     lastMessage: text,
                     lastAt: serverTimestamp()
                 });
