@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>MyChat Web 1a1</title>
+    <title>MyChart Web</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
@@ -63,6 +63,7 @@
         }
         .user-email {
             font-weight: 500;
+            margin-bottom: 4px;
         }
         .btn-ghost {
             background: transparent;
@@ -309,6 +310,29 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .btn-delete-chat {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .btn-delete-chat:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .btn-delete-chat svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--color-muted);
+        }
+        .btn-delete-chat:hover svg {
+            fill: #f15c6c;
+        }
         .chat-messages {
             flex: 1;
             padding: 10px 8px;
@@ -470,7 +494,7 @@
 <body>
     <div class="app">
         <header class="app-header">
-            <div class="app-title">MyChat Web 1a1</div>
+            <div class="app-title">MyChart Web</div>
             <div class="user-info">
                 <div class="user-email" id="userEmail">Sin sesión</div>
                 <div style="display: flex; gap: 6px; justify-content: flex-end;">
@@ -538,6 +562,11 @@
                             <div class="chat-title" id="chatTitle">Sin conversación</div>
                             <div class="chat-subtitle" id="chatSubtitle">Selecciona un contacto para empezar a chatear.</div>
                         </div>
+                        <button class="btn-delete-chat" id="btnDeleteChat" style="display:none" title="Borrar conversación">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
+                            </svg>
+                        </button>
                     </div>
                     <div class="chat-messages" id="chatMessages">
                         <div class="chat-placeholder" id="chatPlaceholder">
@@ -587,7 +616,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-        import { getDatabase, ref, set, get, update, onValue, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+        import { getDatabase, ref, set, get, update, onValue, push, serverTimestamp, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDg0MzNwiELhj637zX9C5lgBMQDIhDy9gM",
@@ -631,6 +660,7 @@
         const msgInput = document.getElementById('msgInput');
         const btnSend = document.getElementById('btnSend');
         const chatStatus = document.getElementById('chatStatus');
+        const btnDeleteChat = document.getElementById('btnDeleteChat');
 
         // Modal elements
         const passwordModal = document.getElementById('passwordModal');
@@ -703,7 +733,6 @@
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, pass);
                 const uid = cred.user.uid;
-                // Guardar en Realtime Database: email + displayName
                 await set(ref(db, `users/${uid}`), {
                     email,
                     displayName,
@@ -752,12 +781,22 @@
         onAuthStateChanged(auth, async (user) => {
             currentUser = user || null;
             if (user) {
-                userEmailSpan.textContent = `${user.email} (Usuario)`;
                 btnLogout.style.display = 'inline-block';
                 btnChangePassword.style.display = 'inline-block';
                 panelAuth.classList.remove('active');
                 panelMain.classList.add('active');
                 await ensureUserNode(user);
+                // Cargar nombre de usuario y mostrarlo en el header
+                const userRef = ref(db, `users/${user.uid}`);
+                onValue(userRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        const displayName = data.displayName || user.email.split('@')[0];
+                        userEmailSpan.textContent = `${displayName} (${user.email})`;
+                    } else {
+                        userEmailSpan.textContent = `${user.email} (Usuario)`;
+                    }
+                }, { once: true });
                 loadUsersList();
             } else {
                 userEmailSpan.textContent = 'Sin sesión';
@@ -803,11 +842,10 @@
                     snapshot.forEach((childSnapshot) => {
                         const data = childSnapshot.val();
                         const uid = childSnapshot.key;
-                        if (uid === currentUser.uid) return; // excluirse a sí mismo
+                        if (uid === currentUser.uid) return;
                         const displayName = data.displayName || data.email.split('@')[0];
                         users.push({ uid, displayName, email: data.email });
                     });
-                    // Ordenar por nombre de usuario
                     users.sort((a, b) => a.displayName.localeCompare(b.displayName));
                     
                     userList.innerHTML = '';
@@ -816,11 +854,9 @@
                         userList.appendChild(item);
                     });
 
-                    if (users.length === 0) {
-                        contactsSubtitle.textContent = 'No hay otros usuarios. Crea otra cuenta.';
-                    } else {
-                        contactsSubtitle.textContent = `${users.length} usuarios disponibles.`;
-                    }
+                    contactsSubtitle.textContent = users.length === 0 
+                        ? 'No hay otros usuarios. Crea otra cuenta.' 
+                        : `${users.length} usuarios disponibles.`;
                 } catch (err) {
                     console.error('Error procesando usuarios:', err);
                     contactsSubtitle.textContent = 'Error al procesar usuarios.';
@@ -848,7 +884,7 @@
             name.textContent = displayName;
             const small = document.createElement('div');
             small.className = 'user-email-small';
-            small.textContent = email; // opcional: mostrar email como subtítulo
+            small.textContent = email;
             meta.appendChild(name);
             meta.appendChild(small);
             div.appendChild(avatar);
@@ -871,6 +907,7 @@
             msgInput.value = '';
             msgInput.disabled = true;
             btnSend.disabled = true;
+            btnDeleteChat.style.display = 'none';
             chatStatus.textContent = 'Esperando contacto';
             currentConversationId = null;
             lastMessageDate = null;
@@ -885,6 +922,7 @@
             chatStatus.textContent = 'Abriendo conversación...';
             msgInput.disabled = true;
             btnSend.disabled = true;
+            btnDeleteChat.style.display = 'none';
 
             const uid1 = currentUser.uid < otherUid ? currentUser.uid : otherUid;
             const uid2 = currentUser.uid > otherUid ? currentUser.uid : otherUid;
@@ -903,12 +941,12 @@
             const letra = otherDisplayName?.charAt(0).toUpperCase();
             chatAvatar.textContent = letra;
             chatTitle.textContent = otherDisplayName;
-            chatSubtitle.textContent = otherEmail; // mostramos el email como subtítulo
+            chatSubtitle.textContent = otherEmail;
 
             if (unsubscribeMessages) unsubscribeMessages();
             chatMessages.innerHTML = '';
             chatMessages.appendChild(chatPlaceholder);
-            lastMessageDate = null; // resetear al abrir conversación
+            lastMessageDate = null;
 
             const messagesRef = ref(db, `conversations/${currentConversationId}/messages`);
             unsubscribeMessages = onValue(messagesRef, (snapshot) => {
@@ -921,10 +959,8 @@
                         const data = childSnapshot.val();
                         messages.push(data);
                     });
-                    // Ordenar por timestamp (createdAt)
                     messages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
                     
-                    // Renderizar con separadores de fecha
                     messages.forEach(msg => renderMessageWithDate(msg));
                     
                     if (!hasMessages) {
@@ -942,6 +978,7 @@
 
             msgInput.disabled = false;
             btnSend.disabled = false;
+            btnDeleteChat.style.display = 'block';
             msgInput.focus();
             chatStatus.textContent = 'Conectado';
         }
@@ -955,7 +992,6 @@
             if (!currentUser) return;
             const isMe = data.senderId === currentUser.uid;
             
-            // Obtener fecha del mensaje
             let messageDate = null;
             if (data.createdAt) {
                 if (typeof data.createdAt === 'number') {
@@ -965,9 +1001,8 @@
                 }
             }
             
-            // Si hay fecha y es diferente a la última, insertar separador
             if (messageDate) {
-                const dateKey = messageDate.toDateString(); // comparación simple
+                const dateKey = messageDate.toDateString();
                 if (lastMessageDate !== dateKey) {
                     const separator = document.createElement('div');
                     separator.className = 'date-separator';
@@ -985,7 +1020,6 @@
             const meta = document.createElement('div');
             meta.className = 'bubble-meta';
             
-            // Formatear hora
             let timeStr = '';
             if (messageDate) {
                 const hh = String(messageDate.getHours()).padStart(2, '0');
@@ -1025,6 +1059,33 @@
             }
         }
 
+        // Borrar conversación actual
+        async function deleteCurrentChat() {
+            if (!currentConversationId || !currentUser) return;
+            if (!confirm('¿Estás seguro de que quieres borrar todos los mensajes de esta conversación?')) return;
+            
+            chatStatus.textContent = 'Borrando mensajes...';
+            const messagesRef = ref(db, `conversations/${currentConversationId}/messages`);
+            try {
+                const snapshot = await get(messagesRef);
+                if (snapshot.exists()) {
+                    const updates = {};
+                    snapshot.forEach(child => {
+                        updates[child.key] = null;
+                    });
+                    await update(ref(db), { [`conversations/${currentConversationId}/messages`]: updates });
+                    await update(ref(db, `conversations/${currentConversationId}`), {
+                        lastMessage: '',
+                        lastAt: null
+                    });
+                }
+                chatStatus.textContent = 'Conectado';
+            } catch (err) {
+                console.error('Error al borrar mensajes:', err);
+                chatStatus.textContent = 'Error al borrar';
+            }
+        }
+
         btnSend.addEventListener('click', sendMessage);
         msgInput.addEventListener('keydown', (ev) => {
             if (ev.key === 'Enter' && !ev.shiftKey) {
@@ -1032,11 +1093,11 @@
                 sendMessage();
             }
         });
+        btnDeleteChat.addEventListener('click', deleteCurrentChat);
 
         // --- CAMBIO DE CONTRASEÑA ---
         btnChangePassword.addEventListener('click', () => {
             passwordModal.classList.add('active');
-            // Limpiar campos
             currentPassword.value = '';
             newPassword.value = '';
             confirmPassword.value = '';
@@ -1086,10 +1147,8 @@
             passwordStatus.style.color = 'var(--color-muted)';
 
             try {
-                // Reautenticar
                 const credential = EmailAuthProvider.credential(user.email, curPass);
                 await reauthenticateWithCredential(user, credential);
-                // Actualizar contraseña
                 await updatePassword(user, newPass);
                 passwordStatus.textContent = '¡Contraseña actualizada correctamente!';
                 passwordStatus.style.color = '#00a884';
