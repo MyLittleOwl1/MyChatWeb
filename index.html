@@ -5,7 +5,6 @@
     <title>MyChat Web 1a1</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        /* (Mismo CSS, sin cambios) */
         :root {
             --color-primary: #075e54;
             --color-primary-dark: #054c43;
@@ -48,6 +47,8 @@
             align-items: center;
             justify-content: space-between;
             color: #fff;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .app-title {
             font-size: 1.05rem;
@@ -76,9 +77,18 @@
         .btn-ghost:hover {
             background: rgba(255,255,255,0.1);
         }
-        .btn-ghost.small {
+        .btn-change-password {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            border-radius: 999px;
+            padding: 4px 10px;
             font-size: 0.7rem;
-            padding: 2px 8px;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .btn-change-password:hover {
+            background: rgba(255,255,255,0.25);
         }
         .app-body {
             display: flex;
@@ -332,6 +342,18 @@
             text-align: right;
             margin-top: 2px;
         }
+        .date-separator {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--color-muted);
+            background: rgba(32,44,51,0.7);
+            padding: 4px 8px;
+            border-radius: 16px;
+            margin: 8px 0 4px;
+            align-self: center;
+            border: 1px solid #202c33;
+            backdrop-filter: blur(2px);
+        }
         .chat-input-bar {
             display: flex;
             padding: 6px 8px;
@@ -384,6 +406,46 @@
         #chatStatus {
             flex: 1;
         }
+        /* Modal para cambio de contraseña */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #1e2a32;
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 360px;
+            border: 1px solid #202c33;
+            box-shadow: 0 12px 30px black;
+        }
+        .modal-content h3 {
+            margin-bottom: 16px;
+            color: var(--color-text);
+        }
+        .modal-content .field-group {
+            margin-bottom: 14px;
+        }
+        .modal-content .btn-primary {
+            margin-top: 8px;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--color-muted);
+            float: right;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
         @media (max-width: 720px) {
             .app {
                 height: 100vh;
@@ -411,8 +473,10 @@
             <div class="app-title">MyChat Web 1a1</div>
             <div class="user-info">
                 <div class="user-email" id="userEmail">Sin sesión</div>
-                <button class="btn-ghost" id="btnLogout" style="display:none">Cerrar sesión</button>
-                <button class="btn-ghost small" id="btnChangePassword" style="display:none">Cambiar contraseña</button>
+                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                    <button class="btn-change-password" id="btnChangePassword" style="display:none">Cambiar contraseña</button>
+                    <button class="btn-ghost" id="btnLogout" style="display:none">Cerrar sesión</button>
+                </div>
             </div>
         </header>
         <main class="app-body">
@@ -436,11 +500,11 @@
                         <button class="btn-primary" id="btnDoLogin">Entrar</button>
                         <p class="hint">Accede con tu cuenta para ver tus contactos y chats.</p>
                     </div>
-                    <!-- Registro -->
+                    <!-- Registro (con nombre de usuario) -->
                     <div id="formRegister" style="display:none">
                         <div class="field-group">
-                            <label for="regUsername">Nombre de usuario</label>
-                            <input type="text" id="regUsername" placeholder="Ej: juanperez">
+                            <label for="regName">Nombre de usuario</label>
+                            <input type="text" id="regName" placeholder="Ej: Juan Pérez" autocomplete="off">
                         </div>
                         <div class="field-group">
                             <label for="regEmail">Email</label>
@@ -451,7 +515,7 @@
                             <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres">
                         </div>
                         <button class="btn-primary" id="btnDoRegister">Crear cuenta</button>
-                        <p class="hint">Se creará tu ficha de usuario para que otros puedan chatear contigo.</p>
+                        <p class="hint">Se creará tu ficha de usuario con el nombre elegido.</p>
                     </div>
                 </div>
                 <div class="status-bar" id="authStatusBar"></div>
@@ -498,9 +562,31 @@
         </main>
     </div>
 
+    <!-- Modal para cambio de contraseña -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closePasswordModal">&times;</button>
+            <h3>Cambiar contraseña</h3>
+            <div class="field-group">
+                <label for="currentPassword">Contraseña actual</label>
+                <input type="password" id="currentPassword" placeholder="********">
+            </div>
+            <div class="field-group">
+                <label for="newPassword">Nueva contraseña (mín. 6 caracteres)</label>
+                <input type="password" id="newPassword" placeholder="********">
+            </div>
+            <div class="field-group">
+                <label for="confirmPassword">Confirmar nueva contraseña</label>
+                <input type="password" id="confirmPassword" placeholder="********">
+            </div>
+            <button class="btn-primary" id="btnUpdatePassword">Actualizar contraseña</button>
+            <p class="hint" id="passwordStatus" style="margin-top: 8px;"></p>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import { getDatabase, ref, set, get, update, onValue, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
         const firebaseConfig = {
@@ -527,7 +613,7 @@
         const loginEmail = document.getElementById('loginEmail');
         const loginPassword = document.getElementById('loginPassword');
         const btnDoLogin = document.getElementById('btnDoLogin');
-        const regUsername = document.getElementById('regUsername');
+        const regName = document.getElementById('regName');
         const regEmail = document.getElementById('regEmail');
         const regPassword = document.getElementById('regPassword');
         const btnDoRegister = document.getElementById('btnDoRegister');
@@ -546,11 +632,20 @@
         const btnSend = document.getElementById('btnSend');
         const chatStatus = document.getElementById('chatStatus');
 
+        // Modal elements
+        const passwordModal = document.getElementById('passwordModal');
+        const closePasswordModal = document.getElementById('closePasswordModal');
+        const currentPassword = document.getElementById('currentPassword');
+        const newPassword = document.getElementById('newPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const btnUpdatePassword = document.getElementById('btnUpdatePassword');
+        const passwordStatus = document.getElementById('passwordStatus');
+
         let currentUser = null;
         let currentConversationId = null;
         let unsubscribeUsers = null;
         let unsubscribeMessages = null;
-        let currentOtherUserInfo = { uid: null, username: null, email: null }; // para mostrar en el chat
+        let lastMessageDate = null; // para seguimiento de fecha en los mensajes
 
         // Auth helpers
         function setAuthStatus(message, isError = false) {
@@ -560,12 +655,6 @@
             span.textContent = message;
             if (isError) span.classList.add('error');
             authStatusBar.appendChild(span);
-        }
-
-        function setGlobalStatus(message, isError = false) {
-            chatStatus.textContent = message;
-            if (isError) chatStatus.style.color = '#f15c6c';
-            else chatStatus.style.color = '';
         }
 
         function switchToLogin() {
@@ -602,11 +691,11 @@
 
         // Registro con nombre de usuario
         btnDoRegister.addEventListener('click', async () => {
-            const username = regUsername.value.trim();
+            const displayName = regName.value.trim();
             const email = regEmail.value.trim();
             const pass = regPassword.value.trim();
-            if (!username || !email || !pass) {
-                setAuthStatus('Completa todos los campos.', true);
+            if (!displayName || !email || !pass) {
+                setAuthStatus('Introduce nombre, email y contraseña.', true);
                 return;
             }
             btnDoRegister.disabled = true;
@@ -614,15 +703,13 @@
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, pass);
                 const uid = cred.user.uid;
-                // Guardar username y email
+                // Guardar en Realtime Database: email + displayName
                 await set(ref(db, `users/${uid}`), {
-                    username,
                     email,
+                    displayName,
                     createdAt: serverTimestamp()
                 });
                 setAuthStatus('Cuenta creada correctamente.');
-                // Opcional: cambiar a pestaña de login
-                switchToLogin();
             } catch (err) {
                 console.error(err);
                 setAuthStatus(traducirErrorAuth(err.code), true);
@@ -661,36 +748,16 @@
             }
         });
 
-        // Cambiar contraseña (enviar correo de restablecimiento)
-        btnChangePassword.addEventListener('click', async () => {
-            if (!currentUser || !currentUser.email) return;
-            try {
-                await sendPasswordResetEmail(auth, currentUser.email);
-                alert('Se ha enviado un correo para restablecer tu contraseña. Revisa tu bandeja de entrada.');
-            } catch (err) {
-                console.error(err);
-                alert('Error al enviar el correo: ' + err.message);
-            }
-        });
-
         // Estado de autenticación
         onAuthStateChanged(auth, async (user) => {
             currentUser = user || null;
             if (user) {
-                // Mostrar email (o username si queremos)
-                // Obtenemos el username del usuario actual para mostrarlo en el header
-                const userRef = ref(db, `users/${user.uid}`);
-                const snapshot = await get(userRef);
-                let displayName = user.email;
-                if (snapshot.exists() && snapshot.val().username) {
-                    displayName = snapshot.val().username;
-                }
-                userEmailSpan.textContent = `${displayName} (${user.email})`;
+                userEmailSpan.textContent = `${user.email} (Usuario)`;
                 btnLogout.style.display = 'inline-block';
                 btnChangePassword.style.display = 'inline-block';
                 panelAuth.classList.remove('active');
                 panelMain.classList.add('active');
-                await ensureUserNode(user); // actualiza si no existe (para usuarios antiguos)
+                await ensureUserNode(user);
                 loadUsersList();
             } else {
                 userEmailSpan.textContent = 'Sin sesión';
@@ -708,16 +775,17 @@
             const userRef = ref(db, `users/${user.uid}`);
             const snapshot = await get(userRef);
             if (!snapshot.exists()) {
-                // Si no existe (usuarios antiguos sin username), lo creamos con email
+                // Usuario antiguo sin displayName, lo creamos con email
                 await set(userRef, {
                     email: user.email,
+                    displayName: user.email.split('@')[0], // nombre por defecto
                     createdAt: serverTimestamp()
                 });
             } else {
-                // Si existe pero no tiene username, actualizar con email (por si acaso)
+                // Si existe pero no tiene displayName, actualizarlo (para compatibilidad)
                 const data = snapshot.val();
-                if (!data.username) {
-                    await update(userRef, { email: user.email });
+                if (!data.displayName) {
+                    await update(userRef, { displayName: data.email.split('@')[0] });
                 }
             }
         }
@@ -736,22 +804,15 @@
                         const data = childSnapshot.val();
                         const uid = childSnapshot.key;
                         if (uid === currentUser.uid) return; // excluirse a sí mismo
-                        users.push({
-                            uid,
-                            username: data.username || null,
-                            email: data.email
-                        });
+                        const displayName = data.displayName || data.email.split('@')[0];
+                        users.push({ uid, displayName, email: data.email });
                     });
-                    // Ordenar por username si existe, si no por email
-                    users.sort((a, b) => {
-                        const nameA = a.username || a.email;
-                        const nameB = b.username || b.email;
-                        return nameA.localeCompare(nameB);
-                    });
+                    // Ordenar por nombre de usuario
+                    users.sort((a, b) => a.displayName.localeCompare(b.displayName));
                     
                     userList.innerHTML = '';
                     users.forEach(u => {
-                        const item = renderUserItem(u.uid, u.username, u.email);
+                        const item = renderUserItem(u.uid, u.displayName, u.email);
                         userList.appendChild(item);
                     });
 
@@ -770,33 +831,33 @@
             });
         }
 
-        function renderUserItem(uid, username, email) {
+        function renderUserItem(uid, displayName, email) {
             const div = document.createElement('div');
             div.className = 'user-item';
             div.dataset.uid = uid;
-            div.dataset.username = username || email; // guardamos para abrir conversación
             div.dataset.email = email;
+            div.dataset.displayName = displayName;
             const avatar = document.createElement('div');
             avatar.className = 'user-avatar';
-            const letra = (username || email)?.charAt(0).toUpperCase();
+            const letra = displayName?.charAt(0).toUpperCase() || '?';
             avatar.textContent = letra;
             const meta = document.createElement('div');
             meta.className = 'user-meta';
             const name = document.createElement('div');
             name.className = 'user-name';
-            name.textContent = username || email; // mostrar username si existe
+            name.textContent = displayName;
             const small = document.createElement('div');
             small.className = 'user-email-small';
-            small.textContent = username ? email : ''; // si no hay username, ya mostramos email arriba, entonces ocultamos o mostramos algo
+            small.textContent = email; // opcional: mostrar email como subtítulo
             meta.appendChild(name);
-            if (username) meta.appendChild(small);
+            meta.appendChild(small);
             div.appendChild(avatar);
             div.appendChild(meta);
             div.addEventListener('click', () => {
                 const items = document.querySelectorAll('.user-item');
                 items.forEach(i => i.classList.remove('active'));
                 div.classList.add('active');
-                openConversationWith(uid, username, email);
+                openConversationWith(uid, displayName, email);
             });
             return div;
         }
@@ -810,23 +871,20 @@
             msgInput.value = '';
             msgInput.disabled = true;
             btnSend.disabled = true;
-            setGlobalStatus('Esperando contacto');
+            chatStatus.textContent = 'Esperando contacto';
             currentConversationId = null;
-            currentOtherUserInfo = { uid: null, username: null, email: null };
+            lastMessageDate = null;
             if (unsubscribeMessages) {
                 unsubscribeMessages();
                 unsubscribeMessages = null;
             }
         }
 
-        async function openConversationWith(otherUid, otherUsername, otherEmail) {
+        async function openConversationWith(otherUid, otherDisplayName, otherEmail) {
             if (!currentUser) return;
-            setGlobalStatus('Abriendo conversación...');
+            chatStatus.textContent = 'Abriendo conversación...';
             msgInput.disabled = true;
             btnSend.disabled = true;
-
-            // Guardar info del otro usuario para mostrarla
-            currentOtherUserInfo = { uid: otherUid, username: otherUsername, email: otherEmail };
 
             const uid1 = currentUser.uid < otherUid ? currentUser.uid : otherUid;
             const uid2 = currentUser.uid > otherUid ? currentUser.uid : otherUid;
@@ -842,16 +900,15 @@
                 });
             }
 
-            // Actualizar cabecera con username si existe
-            const displayName = otherUsername || otherEmail;
-            const letra = displayName?.charAt(0).toUpperCase();
+            const letra = otherDisplayName?.charAt(0).toUpperCase();
             chatAvatar.textContent = letra;
-            chatTitle.textContent = displayName;
-            chatSubtitle.textContent = otherUsername ? otherEmail : ''; // si no hay username, el subtítulo vacío
+            chatTitle.textContent = otherDisplayName;
+            chatSubtitle.textContent = otherEmail; // mostramos el email como subtítulo
 
             if (unsubscribeMessages) unsubscribeMessages();
             chatMessages.innerHTML = '';
             chatMessages.appendChild(chatPlaceholder);
+            lastMessageDate = null; // resetear al abrir conversación
 
             const messagesRef = ref(db, `conversations/${currentConversationId}/messages`);
             unsubscribeMessages = onValue(messagesRef, (snapshot) => {
@@ -864,31 +921,62 @@
                         const data = childSnapshot.val();
                         messages.push(data);
                     });
-                    // Ordenar por createdAt (Firebase Realtime Database mantiene orden por push, pero aseguramos)
+                    // Ordenar por timestamp (createdAt)
                     messages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-                    messages.forEach(msg => renderMessage(msg));
+                    
+                    // Renderizar con separadores de fecha
+                    messages.forEach(msg => renderMessageWithDate(msg));
+                    
                     if (!hasMessages) {
                         chatMessages.appendChild(chatPlaceholder);
                     }
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 } catch (err) {
                     console.error('Error al procesar mensajes:', err);
-                    setGlobalStatus('Error al mostrar mensajes', true);
+                    chatStatus.textContent = 'Error al mostrar mensajes';
                 }
             }, (error) => {
                 console.error('Error al escuchar mensajes:', error);
-                setGlobalStatus('Error al recibir mensajes', true);
+                chatStatus.textContent = 'Error al recibir mensajes';
             });
 
             msgInput.disabled = false;
             btnSend.disabled = false;
             msgInput.focus();
-            setGlobalStatus('Conectado');
+            chatStatus.textContent = 'Conectado';
         }
 
-        function renderMessage(data) {
+        function formatDate(date) {
+            const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('es-ES', opciones);
+        }
+
+        function renderMessageWithDate(data) {
             if (!currentUser) return;
             const isMe = data.senderId === currentUser.uid;
+            
+            // Obtener fecha del mensaje
+            let messageDate = null;
+            if (data.createdAt) {
+                if (typeof data.createdAt === 'number') {
+                    messageDate = new Date(data.createdAt);
+                } else if (data.createdAt.seconds) {
+                    messageDate = new Date(data.createdAt.seconds * 1000);
+                }
+            }
+            
+            // Si hay fecha y es diferente a la última, insertar separador
+            if (messageDate) {
+                const dateKey = messageDate.toDateString(); // comparación simple
+                if (lastMessageDate !== dateKey) {
+                    const separator = document.createElement('div');
+                    separator.className = 'date-separator';
+                    separator.textContent = formatDate(messageDate);
+                    chatMessages.appendChild(separator);
+                    lastMessageDate = dateKey;
+                }
+            }
+
             const bubble = document.createElement('div');
             bubble.className = `bubble ${isMe ? 'me' : 'other'}`;
             const text = document.createElement('div');
@@ -897,19 +985,11 @@
             const meta = document.createElement('div');
             meta.className = 'bubble-meta';
             
-            // Formatear timestamp
+            // Formatear hora
             let timeStr = '';
-            if (data.createdAt) {
-                let date;
-                if (typeof data.createdAt === 'number') {
-                    date = new Date(data.createdAt);
-                } else if (data.createdAt.seconds) {
-                    date = new Date(data.createdAt.seconds * 1000);
-                } else {
-                    date = new Date();
-                }
-                const hh = String(date.getHours()).padStart(2, '0');
-                const mm = String(date.getMinutes()).padStart(2, '0');
+            if (messageDate) {
+                const hh = String(messageDate.getHours()).padStart(2, '0');
+                const mm = String(messageDate.getMinutes()).padStart(2, '0');
                 timeStr = `${hh}:${mm}`;
             }
             meta.textContent = timeStr;
@@ -923,7 +1003,7 @@
             if (!text) return;
             msgInput.value = '';
             msgInput.focus();
-            setGlobalStatus('Enviando...');
+            chatStatus.textContent = 'Enviando...';
 
             const convRef = ref(db, `conversations/${currentConversationId}`);
             const messagesRef = ref(db, `conversations/${currentConversationId}/messages`);
@@ -934,15 +1014,14 @@
                     senderId: currentUser.uid,
                     createdAt: serverTimestamp()
                 });
-                // Usar update para no sobrescribir participants
                 await update(convRef, {
                     lastMessage: text,
                     lastAt: serverTimestamp()
                 });
-                setGlobalStatus('Conectado');
+                chatStatus.textContent = 'Conectado';
             } catch (err) {
                 console.error(err);
-                setGlobalStatus('Error al enviar', true);
+                chatStatus.textContent = 'Error al enviar';
             }
         }
 
@@ -951,6 +1030,84 @@
             if (ev.key === 'Enter' && !ev.shiftKey) {
                 ev.preventDefault();
                 sendMessage();
+            }
+        });
+
+        // --- CAMBIO DE CONTRASEÑA ---
+        btnChangePassword.addEventListener('click', () => {
+            passwordModal.classList.add('active');
+            // Limpiar campos
+            currentPassword.value = '';
+            newPassword.value = '';
+            confirmPassword.value = '';
+            passwordStatus.textContent = '';
+        });
+
+        closePasswordModal.addEventListener('click', () => {
+            passwordModal.classList.remove('active');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === passwordModal) {
+                passwordModal.classList.remove('active');
+            }
+        });
+
+        btnUpdatePassword.addEventListener('click', async () => {
+            const curPass = currentPassword.value.trim();
+            const newPass = newPassword.value.trim();
+            const confPass = confirmPassword.value.trim();
+
+            if (!curPass || !newPass || !confPass) {
+                passwordStatus.textContent = 'Completa todos los campos.';
+                passwordStatus.style.color = '#f15c6c';
+                return;
+            }
+            if (newPass.length < 6) {
+                passwordStatus.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.';
+                passwordStatus.style.color = '#f15c6c';
+                return;
+            }
+            if (newPass !== confPass) {
+                passwordStatus.textContent = 'Las contraseñas nuevas no coinciden.';
+                passwordStatus.style.color = '#f15c6c';
+                return;
+            }
+
+            const user = auth.currentUser;
+            if (!user) {
+                passwordStatus.textContent = 'No hay usuario autenticado.';
+                passwordStatus.style.color = '#f15c6c';
+                return;
+            }
+
+            btnUpdatePassword.disabled = true;
+            passwordStatus.textContent = 'Verificando...';
+            passwordStatus.style.color = 'var(--color-muted)';
+
+            try {
+                // Reautenticar
+                const credential = EmailAuthProvider.credential(user.email, curPass);
+                await reauthenticateWithCredential(user, credential);
+                // Actualizar contraseña
+                await updatePassword(user, newPass);
+                passwordStatus.textContent = '¡Contraseña actualizada correctamente!';
+                passwordStatus.style.color = '#00a884';
+                setTimeout(() => {
+                    passwordModal.classList.remove('active');
+                }, 1500);
+            } catch (error) {
+                console.error(error);
+                let msg = 'Error al cambiar la contraseña.';
+                if (error.code === 'auth/wrong-password') {
+                    msg = 'La contraseña actual es incorrecta.';
+                } else if (error.code === 'auth/weak-password') {
+                    msg = 'La nueva contraseña es demasiado débil.';
+                }
+                passwordStatus.textContent = msg;
+                passwordStatus.style.color = '#f15c6c';
+            } finally {
+                btnUpdatePassword.disabled = false;
             }
         });
     </script>
