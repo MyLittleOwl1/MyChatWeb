@@ -5,7 +5,6 @@
     <title>MyChat Web</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        /* Estilos originales sin cambios */
         :root {
             --color-primary: #075e54;
             --color-primary-dark: #054c43;
@@ -617,7 +616,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-        import { getDatabase, ref, set, get, update, onValue, push, serverTimestamp, remove, onChildAdded } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+        import { getDatabase, ref, set, get, update, onValue, push, serverTimestamp, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDg0MzNwiELhj637zX9C5lgBMQDIhDy9gM",
@@ -675,45 +674,8 @@
         let currentUser = null;
         let currentConversationId = null;
         let unsubscribeUsers = null;
-        let unsubscribeMessages = null;          // Ahora se usará para onChildAdded
-        let lastMessageDate = null;
-        // NUEVO: Set para controlar mensajes ya mostrados y evitar sonidos duplicados
-        let messageIdsSet = new Set();
-        // NUEVO: Contexto de audio para notificaciones
-        let audioContext = null;
-
-        // NUEVO: Inicializa el contexto de audio (llamado desde openConversationWith)
-        function initAudioContext() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            return audioContext;
-        }
-
-        // NUEVO: Reproduce un beep corto
-        function playNotificationSound() {
-            if (!audioContext) return;
-            // Si el contexto está suspendido, intentamos reanudarlo (p.ej. en móviles)
-            if (audioContext.state === 'suspended') {
-                audioContext.resume().then(() => {
-                    playBeep();
-                }).catch(e => console.warn('No se pudo reanudar el audio', e));
-            } else {
-                playBeep();
-            }
-        }
-
-        function playBeep() {
-            if (!audioContext) return;
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            oscillator.frequency.value = 800; // 800 Hz
-            gainNode.gain.value = 0.3;         // volumen moderado
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.2); // 0.2 segundos
-        }
+        let unsubscribeMessages = null;
+        let lastMessageDate = null; // para seguimiento de fecha en los mensajes
 
         // Auth helpers
         function setAuthStatus(message, isError = false) {
@@ -949,7 +911,6 @@
             chatStatus.textContent = 'Esperando contacto';
             currentConversationId = null;
             lastMessageDate = null;
-            messageIdsSet.clear(); // NUEVO: limpiar Set de mensajes
             if (unsubscribeMessages) {
                 unsubscribeMessages();
                 unsubscribeMessages = null;
@@ -962,9 +923,6 @@
             msgInput.disabled = true;
             btnSend.disabled = true;
             btnDeleteChat.style.display = 'none';
-
-            // NUEVO: Inicializar audio context (en respuesta al clic del usuario)
-            initAudioContext();
 
             const uid1 = currentUser.uid < otherUid ? currentUser.uid : otherUid;
             const uid2 = currentUser.uid > otherUid ? currentUser.uid : otherUid;
@@ -985,49 +943,36 @@
             chatTitle.textContent = otherDisplayName;
             chatSubtitle.textContent = otherEmail;
 
-            // Limpiar listener anterior y vista
             if (unsubscribeMessages) unsubscribeMessages();
             chatMessages.innerHTML = '';
             chatMessages.appendChild(chatPlaceholder);
             lastMessageDate = null;
-            messageIdsSet.clear(); // NUEVO: reiniciar Set
 
             const messagesRef = ref(db, `conversations/${currentConversationId}/messages`);
-
-            // NUEVO: Cargar mensajes existentes una sola vez
-            const snapshot = await get(messagesRef);
-            const messages = [];
-            snapshot.forEach(child => {
-                const msg = child.val();
-                msg.id = child.key;
-                messages.push(msg);
-                messageIdsSet.add(child.key); // guardar ID
-            });
-            // Ordenar por timestamp (asumiendo que Firebase no garantiza orden)
-            messages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-            messages.forEach(msg => renderMessageWithDate(msg));
-            if (messages.length === 0) {
-                chatMessages.appendChild(chatPlaceholder);
-            }
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-
-            // NUEVO: Escuchar sólo nuevos mensajes (child_added)
-            unsubscribeMessages = onChildAdded(messagesRef, (childSnapshot) => {
-                const msg = childSnapshot.val();
-                const msgId = childSnapshot.key;
-                // Si el ID no está en el Set, es un mensaje nuevo
-                if (!messageIdsSet.has(msgId)) {
-                    msg.id = msgId;
-                    renderMessageWithDate(msg);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    // Reproducir sonido sólo si el mensaje no es del usuario actual
-                    if (msg.senderId !== currentUser.uid) {
-                        playNotificationSound();
+            unsubscribeMessages = onValue(messagesRef, (snapshot) => {
+                try {
+                    chatMessages.innerHTML = '';
+                    let hasMessages = false;
+                    const messages = [];
+                    snapshot.forEach((childSnapshot) => {
+                        hasMessages = true;
+                        const data = childSnapshot.val();
+                        messages.push(data);
+                    });
+                    messages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+                    
+                    messages.forEach(msg => renderMessageWithDate(msg));
+                    
+                    if (!hasMessages) {
+                        chatMessages.appendChild(chatPlaceholder);
                     }
-                    messageIdsSet.add(msgId);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } catch (err) {
+                    console.error('Error al procesar mensajes:', err);
+                    chatStatus.textContent = 'Error al mostrar mensajes';
                 }
             }, (error) => {
-                console.error('Error en onChildAdded:', error);
+                console.error('Error al escuchar mensajes:', error);
                 chatStatus.textContent = 'Error al recibir mensajes';
             });
 
@@ -1134,11 +1079,6 @@
                         lastAt: null
                     });
                 }
-                // NUEVO: limpiar vista y Set de mensajes
-                chatMessages.innerHTML = '';
-                chatMessages.appendChild(chatPlaceholder);
-                lastMessageDate = null;
-                messageIdsSet.clear();
                 chatStatus.textContent = 'Conectado';
             } catch (err) {
                 console.error('Error al borrar mensajes:', err);
