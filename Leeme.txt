@@ -1,3 +1,3 @@
 Esta app no funciona y creo que no sirve.
 La que vale solo para uso en web ees: ChatMe
-
+MyLittleOwl1/ChatDeGaby --> Es la que se usa conjuntamente con la app de android (MyChat)
